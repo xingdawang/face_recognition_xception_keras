@@ -1,4 +1,4 @@
-import cv2, os, random
+import cv2, os, random, json
 import matplotlib.pyplot as plt
 from keras.models import model_from_json
 from keras.preprocessing import image
@@ -9,8 +9,8 @@ import numpy as np
 
 def load_model(width, height):
     k.clear_session()
-    json_file_path = 'xception_424_150x150.json'
-    weights_path = 'xception_424_150x150.h5'
+    json_file_path = 'xception_4_424_150x150.json'
+    weights_path = 'xception_4_424_150x150.h5'
 
     # Model reconstruction from JSON file
     with open(json_file_path, 'r') as f:
@@ -34,13 +34,13 @@ def detect_crop_face(image, faceCascade):
         cropped_face_size.append([x, y, w, h])
     return cropped_face_size #cropped_face = image[y:y+h, x:x+w]
 
-def name_loader(index):
-    if index == 0:
-        return "Julie", '/Users/xingdawang/Movies/julie'
-    elif index == 1:
-        return "Melanie", '/Users/xingdawang/Movies/melanie'
-    elif index == 2:
-        return "Xingda", '/Users/xingdawang/Movies/xingda'
+def name_loader(index, json_config_file):
+    with open(json_config_file) as json_file:  
+        data = json.load(json_file)
+        probability = data['probability']
+        for name in probability:
+            if probability[name] == index:
+                return name, os.path.join(data['base_url'], name)
 
 def get_euclidean_distance(source, target):
     euclidean_distance = source - target
@@ -81,7 +81,8 @@ def interactive(width, height, faceCascade = 'haarcascade_frontalface_default.xm
                 classes = model.predict_classes(cropped_face_raw)
                 # predicted percentage
                 people = model.predict(cropped_face_raw).reshape(-1)
-                name, path = name_loader(classes[0])
+                json_config_file = 'name_list.json'
+                name, path = name_loader(classes[0], json_config_file)
 
                 # calculate enclidean distance
                 image_path = random_image_loader(path)
@@ -92,9 +93,14 @@ def interactive(width, height, faceCascade = 'haarcascade_frontalface_default.xm
                 cropped_face_resized = cv2.resize(cropped_face, (width, height))
                 cropped_face_reshaped = image.img_to_array(cropped_face_resized).reshape(3, -1)
                 result = get_euclidean_distance(img_reshaped, cropped_face_reshaped)
-                # print(str(result) + " " + name)
-                enclidean_distance_constant = 15000
-                if result < enclidean_distance_constant:
+                enclidean_distance_constant = 17000
+
+                if result <= enclidean_distance_constant:
+                    print('\033[92m' + str(result) + " " + name + '\033[0m')
+                else:
+                    print('\033[91m' + str(result) + " " + name + '\033[0m')
+
+                if result <= enclidean_distance_constant:
                     # print name on model
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     cv2.putText(frame, name, (x+10,y-10), font, 1,(0,0,255),2,cv2.LINE_AA)
