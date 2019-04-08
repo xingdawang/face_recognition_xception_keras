@@ -1,4 +1,5 @@
-import cv2, os, random, json
+import cv2, os, random, json, pathlib
+from datetime import datetime
 import matplotlib.pyplot as plt
 from keras.models import model_from_json
 from keras.preprocessing import image
@@ -9,8 +10,8 @@ import numpy as np
 
 def load_model(width, height):
     k.clear_session()
-    json_file_path = 'xception_4_424_150x150.json'
-    weights_path = 'xception_4_424_150x150.h5'
+    json_file_path = 'xception_5_424_150x150.json'
+    weights_path = 'xception_5_424_150x150.h5'
 
     # Model reconstruction from JSON file
     with open(json_file_path, 'r') as f:
@@ -57,7 +58,6 @@ def random_image_loader(images_folder):
 def interactive(width, height, faceCascade = 'haarcascade_frontalface_default.xml'):
     cam = cv2.VideoCapture(0)
     cv2.namedWindow("loading")
-    img_counter = 0
     # load face recogition model
     model = load_model(width=width, height=height)
 
@@ -116,10 +116,12 @@ def interactive(width, height, faceCascade = 'haarcascade_frontalface_default.xm
             break
         elif k%256 == 32:
             # SPACE pressed
-            img_name = "screenshot_{}.png".format(img_counter)
-            cv2.imwrite(img_name, frame)
+
+            # create screenshot directory if not exist
+            pathlib.Path("screenshot").mkdir(parents=True, exist_ok=True)
+            img_name = "screenshot_{}.png".format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+            cv2.imwrite(os.path.join("screenshot", img_name), frame)
             print("{} written!".format(img_name))
-            img_counter += 1
 
     cam.release()
     cv2.destroyAllWindows()
